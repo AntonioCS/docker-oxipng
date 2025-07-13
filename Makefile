@@ -2,13 +2,12 @@ oxipng_version := v9.1.5## Default oxipng version
 pin_as_latest := 1
 image := acsprime/oxipng
 docker_hub_is_logged_in = $(shell docker info 2>/dev/null | grep -q "Username:" && echo 1)
-
-help: ## Show this help
-	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
-
+.PHONY: help build push release test clean
+.TARGET: help
 
 build: ## Build the Docker image for OxiPNG
 	docker build \
+	  --no-cache \
       --build-arg OXIPNG_VERSION=$(oxipng_version) \
       -t $(image):$(oxipng_version) \
       $(if $(filter 1,$(pin_as_latest)),-t $(image):latest) \
@@ -30,10 +29,26 @@ release-9.1.4: release
 release-9.1.4: ## Build and push the Docker image for OxiPNG v9.1.4
 
 release: build
+release: test
 release: push
+release: clean
 release: ## Build and push the Docker image for latest OxiPNG
 	@echo "OxiPNG Docker image $(oxipng_version) released successfully$(if $(filter 1,$(pin_as_latest)), and was also set to latest)."
+
+
+
+test: ## Verify the built binary outputs the expected version
+	$(eval oxipng_output := $(shell docker run --rm $(image):$(oxipng_version) --version))
+	$(if $(filter $(subst v,,$(oxipng_version)),$(oxipng_output)),\
+		$(info ✅ Test OK: $(oxipng_output))\
+		,\
+		$(error ❌ Version mismatch: expected '$(subst v,,$(oxipng_version))', got '$(oxipng_output)')\
+	)
+	@true
 
 clean: ## Clean up the Docker images
 	-docker rmi $(image):$(oxipng_version)
 	-docker rmi $(image):latest
+
+help: ## Show this help
+	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'

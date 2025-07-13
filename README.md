@@ -60,18 +60,15 @@ make release        # Build and push the latest version
 make release-9.1.5  # Build/push v9.1.5 only (not tagged as latest)
 make clean          # Remove local images
 make help           # Show available targets
+make test           # Ensure built binary in image works
 ```
 
 ---
 
 ## 🛠️ Build Details
 
-- Compiled with:
-    - `--target x86_64-unknown-linux-musl` for static linking
-    - `opt-level=z`, `lto=true`, and `strip` for smallest possible binary
+- Compiled statically 
 - Final image is based on `scratch` (no shell, no runtime)
-- Multi-stage Docker build using `rust:1.77-slim` as the build base
-
 ---
 
 ## 📁 Using in Other Dockerfiles
@@ -83,7 +80,7 @@ FROM acsprime/oxipng:v9.1.5 as oxipng
 
 # In your final image
 FROM php:8.3-cli
-COPY --from=oxipng /usr/bin/oxipng /usr/local/bin/oxipng
+COPY --from=oxipng /oxipng /usr/local/bin/oxipng
 ```
 
 This gives you a static, portable `oxipng` binary inside any base image, ready for use in compression pipelines.
